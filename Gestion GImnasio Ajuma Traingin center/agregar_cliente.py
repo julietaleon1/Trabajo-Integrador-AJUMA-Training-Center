@@ -8,7 +8,6 @@ import subprocess
 import sys
 import random
 from bienvenida_cliente import enviar_bienvenida  # Asegúrate que este módulo esté bien
-import email_validator
 
 RUTA_ARCHIVO = "clientes.json"
 
@@ -83,7 +82,7 @@ def abrir_agregar_cliente(root):
                 datos.append(entrada.get_date().strftime("%Y-%m-%d"))
 
         if all(datos):
-            nombre, dni, telefono = datos[0], datos[1], datos[2]
+            nombre, dni, telefono, email = datos[0], datos[1], datos[2], datos[3]
 
             if not validar_nombre(nombre):
                 messagebox.showerror("Nombre inválido", "El campo 'Nombre' solo debe contener letras y espacios.")
@@ -94,6 +93,9 @@ def abrir_agregar_cliente(root):
             if not validar_dni_telefono(telefono):
                 messagebox.showerror("Teléfono inválido", "El campo 'Teléfono' solo debe contener números.")
                 return
+            if "@" not in email:
+                messagebox.showerror("Email inválido", "El campo 'Email' debe contener una arroba (@).")
+                return
 
             id_cliente = str(random.randint(10000, 99999))
             tree.insert("", "end", values=datos, tags=(id_cliente,))
@@ -103,7 +105,7 @@ def abrir_agregar_cliente(root):
             subprocess.Popen([sys.executable, "RecordatorioVencimiento.py"])
 
             try:
-                email, plan = datos[3], datos[5]
+                plan = datos[5]
                 enviado = enviar_bienvenida(nombre, email, plan, id_cliente)
                 if enviado:
                     print(f"Correo de bienvenida enviado a {email}")
@@ -203,7 +205,7 @@ def abrir_agregar_cliente(root):
             entrada = tipo(frame_form, width=50, font=("Segoe UI", 11), bg="#2b2b2b", fg="white", insertbackground="white")
         elif tipo == ttk.Combobox:
             entrada = tipo(frame_form, values=opciones[0], state="readonly", width=47, font=("Segoe UI", 11))
-            entrada.current(0)  # Selecciona primer valor por defecto
+            entrada.current(0)
         elif tipo == DateEntry:
             entrada = tipo(frame_form, width=47, font=("Segoe UI", 11), background='darkblue', foreground='white', date_pattern="yyyy-mm-dd")
 
@@ -253,7 +255,7 @@ def abrir_agregar_cliente(root):
             cliente.get("membresia", ""),
             cliente.get("plan", ""),
             cliente.get("fecha_ingreso", ""),
-            cliente.get("tipo_pago", "Efectivo")  # Valor por defecto si no existe
+            cliente.get("tipo_pago", "Efectivo")
         )
         tree.insert("", "end", values=valores, tags=(cliente.get("id", str(random.randint(10000, 99999))),))
 
