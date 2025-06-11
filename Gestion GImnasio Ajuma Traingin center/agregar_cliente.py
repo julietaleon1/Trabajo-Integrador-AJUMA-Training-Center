@@ -10,7 +10,7 @@ import random
 from bienvenida_cliente import enviar_bienvenida  # Asegúrate que este módulo esté bien
 
 RUTA_ARCHIVO = "clientes.json"
-
+#Funcion principal
 def abrir_agregar_cliente(root):
     ventana = tk.Toplevel(root)
     ventana.title("Gestión de Clientes")
