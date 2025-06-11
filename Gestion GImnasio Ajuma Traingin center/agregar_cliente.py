@@ -8,6 +8,7 @@ import subprocess
 import sys
 import random
 from bienvenida_cliente import enviar_bienvenida  # Asegúrate que este módulo esté bien
+import email_validator
 
 RUTA_ARCHIVO = "clientes.json"
 
