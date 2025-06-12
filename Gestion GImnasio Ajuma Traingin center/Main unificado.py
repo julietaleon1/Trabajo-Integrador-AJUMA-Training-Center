@@ -1,3 +1,4 @@
+#Importacion de librerias
 import tkinter as tk
 from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
@@ -9,10 +10,10 @@ from exportar import abrir_ventana_exportar
 import subprocess
 import sys
 
-# ========== CONFIGURACIÓN ==========
+#inicio de sesion 
 CONTRASEÑA_CORRECTA = "ajumagym"
 
-# ========== FUNCIONES ==========
+#Funciones generales para la interfaz
 def salir():
     root.destroy()
 
@@ -40,19 +41,19 @@ def animar_hover_boton(boton, color_base, color_hover):
     boton.bind("<Enter>", ampliar)
     boton.bind("<Leave>", reducir)
 
-# ========== FUNCIONES DE ACCESO ==========
+#Funciones de acceso
 def mostrar_login():
     login_ventana = tk.Toplevel()
     login_ventana.title("Acceso al Sistema")
     login_ventana.geometry("400x200")
     login_ventana.configure(bg="#111111")
-    login_ventana.grab_set()  # Bloquea interacción con root
+    login_ventana.grab_set() 
     login_ventana.resizable(False, False)
 
     tk.Label(login_ventana, text="Ingrese la contraseña:", font=("Segoe UI", 14), bg="#111111", fg="white").pack(pady=20)
     entry_contraseña = tk.Entry(login_ventana, show="*", font=("Segoe UI", 14), width=25)
     entry_contraseña.pack()
-
+    #Verificacion de contraseña
     def verificar_contraseña():
         if entry_contraseña.get() == CONTRASEÑA_CORRECTA:
             login_ventana.destroy()
@@ -69,11 +70,11 @@ def mostrar_login():
 def iniciar_menu():
     root.deiconify()
 
-# ========== VENTANA PRINCIPAL ==========
+#Interfaz principal
 root = tk.Tk()
 root.title("Sistema de Gestión de Gimnasio")
 root.attributes('-fullscreen', True)
-root.withdraw()  # Oculta la ventana principal hasta ingresar contraseña
+root.withdraw() 
 
 # Fondo
 imagen_fondo = Image.open("C:/Users/Usuario/Desktop/Gestion GImnasio Ajuma Traingin center/Imagen Gimnasio IA.jpg")
