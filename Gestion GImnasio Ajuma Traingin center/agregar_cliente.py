@@ -60,7 +60,7 @@ def abrir_agregar_cliente(root):
                 "tipo_pago": valores[7],
             })
         guardar_clientes(datos)
-
+    #validacion datos
     def validar_nombre(nombre):
         return nombre.replace(" ", "").isalpha()
 
