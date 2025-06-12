@@ -8,6 +8,8 @@ import os
 RUTA_ARCHIVO = "clientes.json"
 RUTA_RUTINAS_ASIGNADAS = "rutinasyaasignadas.json"
 
+#GEESTOR DE RUTINAS
+
 def abrir_rutina(root, callback_volver):
     try:
         with open(RUTA_ARCHIVO, "r", encoding="utf-8") as f:
@@ -21,26 +23,26 @@ def abrir_rutina(root, callback_volver):
     ventana.attributes("-fullscreen", True)
     selected_client_name = StringVar()
     selected_client_name.set("Seleccione un cliente")
-
+#ESTILOS VISUALES
     def estilos():
         estilo = ttk.Style()
         estilo.theme_use("clam")
         estilo.configure("TLabel", background="#34495E", foreground="white", font=("Arial", 12))
         estilo.configure("TButton", font=("Arial", 12, "bold"))
         estilo.configure("TCombobox", font=("Arial", 12))
-
+#SELECCIONAR CLIENTE LISTA
     def seleccionar_cliente(event):
         idxs = lista_clientes.curselection()
         if idxs:
             selected_client_name.set(lista_clientes.get(idxs[0]))
-
+#MENSAJE TEMPORAL EN VENTANA FLOTANTE
     def mensaje_emergente(texto):
         top = Toplevel(ventana)
         top.overrideredirect(True)
         top.geometry(f"+{ventana.winfo_x()+200}+{ventana.winfo_y()+300}")
         tk.Label(top, text=texto, bg="#27AE60", fg="white", font=("Arial", 14, "bold"), padx=20, pady=10).pack()
         ventana.after(2000, top.destroy)
-
+#VALIDACION DE RUTINAS ASIGNADAS
     def asignar_rutina():
         cliente = selected_client_name.get()
         rutina = combo_rutina.get()
@@ -73,7 +75,7 @@ def abrir_rutina(root, callback_volver):
             return
 
         mensaje_emergente(f"¡Asignado {rutina} por {tiempo} a {cliente}!")
-
+#CONFIRMACION DE SALIDA
     def confirmar_salida_personalizado():
         confirmar_frame = tk.Frame(main_frame, bg="#1e1e1e")
         confirmar_frame.pack(pady=10)
@@ -86,7 +88,7 @@ def abrir_rutina(root, callback_volver):
 
         tk.Button(confirmar_frame, text="Cancelar", bg="gray", fg="white",
                   font=("Arial", 10, "bold"), command=confirmar_frame.destroy).pack(side="left", padx=5)
-
+#CONFIRMACION VISUAL DE LA VENTANA
     def cerrar_ventana():
         callback_volver()
         ventana.destroy()
@@ -95,7 +97,7 @@ def abrir_rutina(root, callback_volver):
 
     canvas = tk.Canvas(ventana)
     canvas.pack(fill="both", expand=True)
-
+#FONDO 
     try:
         original_bg_image = Image.open("gimnasioimagen.jpg")
     except:
@@ -103,7 +105,7 @@ def abrir_rutina(root, callback_volver):
         original_bg_image = None
 
     bg_image_container = [None]
-
+#FUNCIONAMIENTO POR SECCIONES
     def redibujar_fondo(event=None):
         if original_bg_image:
             w = ventana.winfo_width()
@@ -124,7 +126,7 @@ def abrir_rutina(root, callback_volver):
 
     lista_frame = ttk.Frame(main_frame)
     lista_frame.pack(pady=10)
-
+#LISTA DE CLIENTES
     ttk.Label(lista_frame, text="Clientes:").pack(anchor="w")
     lista_clientes = Listbox(lista_frame, height=10, width=30, font=("Arial", 12), bg="black", fg="white")
     for c in clientes:
@@ -150,6 +152,6 @@ def abrir_rutina(root, callback_volver):
 
     ttk.Button(main_frame, text="Asignar Rutina", command=asignar_rutina).pack(pady=20)
     ttk.Button(main_frame, text="Salir al Menú", command=confirmar_salida_personalizado).pack(pady=10)
-
+#TECLA ESCAPE PARA ACTIVAR LA FUNCIÓN DE SALIDA
     redibujar_fondo()
     ventana.bind("<Escape>", lambda e: confirmar_salida_personalizado())
