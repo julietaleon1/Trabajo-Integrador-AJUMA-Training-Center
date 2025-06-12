@@ -1,20 +1,29 @@
-import smtplib
-import json
-from datetime import datetime, timedelta
-from email.message import EmailMessage
-from email.utils import make_msgid
-import os
-import mercadopago
+import smtplib  # Para enviar correos
+import json  # Para leer y escribir archivos JSON
+from datetime import datetime, timedelta  # Para manejar fechas
+from email.message import EmailMessage  # Para construir el correo
+from email.utils import make_msgid  # Para crear IDs únicos para imágenes embebidas
+import os  # Para acceder al sistema de archivos
+import mercadopago  # SDK de MercadoPago para crear enlaces de pago
 
+# Token de acceso a la API de MercadoPago
 MP_ACCESS_TOKEN = "APP_USR-3725378194687616-060622-013c07d1a71e2e0a0c1518ed3f2c7b35-1126088577"
+
+# Ruta del archivo JSON con los datos de clientes
 ARCHIVO_JSON_CLIENTES = 'clientes.json'
+
+# Días antes del vencimiento para enviar el recordatorio
 DIAS_ANTICIPACION_RECORDATORIO = 3
+
+# Configuración del servidor SMTP de Gmail
 SMTP_SERVER = 'smtp.gmail.com'
 SMTP_PORT = 465
 
+# Credenciales del remitente del correo
 REMITENTE_EMAIL = "ajumatrainingcenter@gmail.com"
 REMITENTE_PASSWORD = "uuqi sqqd ndig ttna"
 
+# === CARGA LA LISTA DE CLIENTES DESDE EL ARCHIVO JSON ===
 def cargar_clientes(ruta_archivo):
     try:
         with open(ruta_archivo, 'r', encoding='utf-8') as f:
@@ -22,6 +31,7 @@ def cargar_clientes(ruta_archivo):
     except Exception:
         return []
 
+# === CALCULA LA FECHA DE VENCIMIENTO SEGÚN EL PLAN DEL CLIENTE ===
 def calcular_fecha_vencimiento(fecha_ingreso, plan):
     if plan == "Mensual":
         return fecha_ingreso + timedelta(days=30)
@@ -31,7 +41,8 @@ def calcular_fecha_vencimiento(fecha_ingreso, plan):
         return fecha_ingreso + timedelta(days=365)
     else:
         return fecha_ingreso
-    
+
+# === CREA UN LINK DE PAGO PERSONALIZADO EN MERCADOPAGO ===
 def crear_link_pago(nombre, email, monto, descripcion, cliente_id=None):
     sdk = mercadopago.SDK(MP_ACCESS_TOKEN)
     preference_data = {
@@ -60,10 +71,11 @@ def crear_link_pago(nombre, email, monto, descripcion, cliente_id=None):
     }
     response = sdk.preference().create(preference_data)
     if response["status"] == 201:
-        return response["response"]["init_point"]
+        return response["response"]["init_point"]  # Devuelve el link de pago
     else:
         return None
-    
+
+# === ENVÍA EL CORREO ELECTRÓNICO DE RECORDATORIO AL CLIENTE ===
 def enviar_correo_recordatorio(destinatario_email, nombre_cliente, fecha_pago_str, remitente_email_local, remitente_password_local, link_pago):
     try:
         msg = EmailMessage()
@@ -71,8 +83,9 @@ def enviar_correo_recordatorio(destinatario_email, nombre_cliente, fecha_pago_st
         msg['From'] = remitente_email_local
         msg['To'] = destinatario_email
 
-        imagen_cid = make_msgid(domain='logo-ajuma.png')[1:-1]
+        imagen_cid = make_msgid(domain='logo-ajuma.png')[1:-1]  # ID único para insertar el logo
 
+        # Contenido HTML del correo
         cuerpo_html = f"""
         <html>
         <head>
@@ -113,9 +126,10 @@ def enviar_correo_recordatorio(destinatario_email, nombre_cliente, fecha_pago_st
         </body>
         </html>
         """
-        msg.set_content("Este es un recordatorio de que su próxima cuota vence pronto.")
-        msg.add_alternative(cuerpo_html, subtype='html')
+        msg.set_content("Este es un recordatorio de que su próxima cuota vence pronto.")  # Versión solo texto
+        msg.add_alternative(cuerpo_html, subtype='html')  # Versión HTML
 
+        # Adjunta el logo si existe
         logo_path = os.path.join(os.path.dirname(__file__), "logo-ajuma.png")
         if os.path.exists(logo_path):
             with open(logo_path, 'rb') as img:
@@ -126,6 +140,7 @@ def enviar_correo_recordatorio(destinatario_email, nombre_cliente, fecha_pago_st
                     cid=f"<{imagen_cid}>"
                 )
 
+        # Conexión segura con el servidor SMTP y envío del correo
         with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as smtp:
             smtp.login(remitente_email_local, remitente_password_local)
             smtp.send_message(msg)
@@ -133,6 +148,7 @@ def enviar_correo_recordatorio(destinatario_email, nombre_cliente, fecha_pago_st
     except Exception as e:
         print(f"Error al enviar el correo a {destinatario_email}: {e}")
 
+# === OBTIENE LA FECHA MÁS RECIENTE DE PAGO DEL CLIENTE ===
 def obtener_ultima_fecha_pago(cliente):
     facturacion = cliente.get("facturacion", [])
     if not facturacion:
@@ -142,6 +158,7 @@ def obtener_ultima_fecha_pago(cliente):
         return cliente.get("fecha_ingreso")
     return max(fechas)
 
+# === FUNCIÓN PRINCIPAL QUE REVISA CLIENTES Y ENVÍA RECORDATORIOS ===
 def main():
     clientes = cargar_clientes(ARCHIVO_JSON_CLIENTES)
     hoy = datetime.now().date()
@@ -156,8 +173,10 @@ def main():
             fecha_base = datetime.strptime(fecha_base_str, "%Y-%m-%d").date()
             fecha_vencimiento = calcular_fecha_vencimiento(fecha_base, plan)
             dias_restantes = (fecha_vencimiento - hoy).days
+
+            # Si está dentro del rango de recordatorio, crea el link y envía correo
             if 0 <= dias_restantes <= DIAS_ANTICIPACION_RECORDATORIO:
-                monto = 10  # O el monto real según el plan
+                monto = 10  # Monto de prueba (ajustar según el plan)
                 descripcion = f"Cuota {plan} Ajuma Training Center"
                 link_pago = crear_link_pago(nombre, email, monto, descripcion, cliente.get("id"))
                 if link_pago:
@@ -165,6 +184,6 @@ def main():
         except Exception as e:
             print(f"Error procesando cliente: {e}")
 
-# Ejecutar solo si se corre directamente, no al importar
+# === SOLO EJECUTA MAIN SI EL SCRIPT SE EJECUTA DIRECTAMENTE ===
 if __name__ == "__main__":
     main()
