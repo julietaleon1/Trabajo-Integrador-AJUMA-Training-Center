@@ -53,6 +53,7 @@ def mostrar_login():
     tk.Label(login_ventana, text="Ingrese la contraseña:", font=("Segoe UI", 14), bg="#111111", fg="white").pack(pady=20)
     entry_contraseña = tk.Entry(login_ventana, show="*", font=("Segoe UI", 14), width=25)
     entry_contraseña.pack()
+    
     #Verificacion de contraseña
     def verificar_contraseña():
         if entry_contraseña.get() == CONTRASEÑA_CORRECTA:
