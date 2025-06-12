@@ -1,3 +1,4 @@
+#importamos librerias
 import tkinter as tk
 from tkinter import ttk, messagebox
 from tkcalendar import DateEntry
@@ -7,16 +8,18 @@ from datetime import datetime
 import subprocess
 import sys
 import random
-from bienvenida_cliente import enviar_bienvenida  # Asegúrate que este módulo esté bien
+from bienvenida_cliente import enviar_bienvenida
 
+#creamos constante de archivo json
 RUTA_ARCHIVO = "clientes.json"
+
 #Funcion principal
 def abrir_agregar_cliente(root):
     ventana = tk.Toplevel(root)
     ventana.title("Gestión de Clientes")
     ventana.attributes("-fullscreen", True)
     ventana.configure(bg="#1e1e1e")
-
+    #Funcion para cerrar ventana 
     def cerrar_ventana():
         ventana.destroy()
         root.deiconify()
@@ -26,7 +29,7 @@ def abrir_agregar_cliente(root):
     ventana.protocol("WM_DELETE_WINDOW", cerrar_ventana)
 
     entradas = []
-
+    #cargar datos cliente
     def cargar_clientes():
         if os.path.exists(RUTA_ARCHIVO):
             with open(RUTA_ARCHIVO, "r", encoding="utf-8") as archivo:
@@ -35,11 +38,11 @@ def abrir_agregar_cliente(root):
                 except json.JSONDecodeError:
                     return []
         return []
-
+    #guardar datos clientes
     def guardar_clientes(clientes):
         with open(RUTA_ARCHIVO, "w", encoding="utf-8") as archivo:
             json.dump(clientes, archivo, indent=4)
-
+    #actualizar json desde el treeview
     def actualizar_json_desde_treeview():
         datos = []
         for item in tree.get_children():
@@ -70,7 +73,7 @@ def abrir_agregar_cliente(root):
                 entrada.delete(0, tk.END)
             elif isinstance(entrada, DateEntry):
                 entrada.set_date(datetime.today())
-
+    #Funcion para agregar cliente y validaciones
     def agregar_cliente():
         datos = []
         for entrada in entradas:
@@ -113,7 +116,7 @@ def abrir_agregar_cliente(root):
                 print(f"Error al enviar correo: {e}")
         else:
             messagebox.showwarning("Campos incompletos", "Complete todos los campos.")
-
+    #Poder seleccionar cliente en el tree
     def seleccionar_cliente(event):
         item = tree.selection()
         if item:
@@ -128,7 +131,7 @@ def abrir_agregar_cliente(root):
                         entradas[i].set_date(fecha_dt)
                     except Exception:
                         entradas[i].set_date(datetime.today())
-
+    #Modifcar cliente
     def modificar_cliente():
         item = tree.selection()
         if item:
@@ -156,7 +159,7 @@ def abrir_agregar_cliente(root):
     label_confirmacion = tk.Label(frame_confirmacion, text="¿Seguro que querés eliminar este cliente?", font=("Segoe UI", 11), fg="white", bg="#1e1e1e")
     boton_confirmar = tk.Button(frame_confirmacion, text="Sí, eliminar", bg="#E72113", fg="white", font=("Segoe UI", 10, "bold"), command=lambda: confirmar_eliminacion())
     boton_cancelar = tk.Button(frame_confirmacion, text="Cancelar", bg="#444444", fg="white", font=("Segoe UI", 10, "bold"), command=lambda: cancelar_eliminacion())
-
+    #Eliminar cliente
     def eliminar_cliente():
         item = tree.selection()
         if item:
@@ -186,7 +189,7 @@ def abrir_agregar_cliente(root):
 
     frame_form = tk.Frame(ventana, bg="#1e1e1e")
     frame_form.pack(pady=20)
-
+    #campos o entradas
     campos = [
         ("Nombre", tk.Entry),
         ("DNI", tk.Entry),
@@ -214,7 +217,7 @@ def abrir_agregar_cliente(root):
 
     frame_botones = tk.Frame(ventana, bg="#1e1e1e")
     frame_botones.pack(pady=15)
-
+    #Colores de botones y estilo
     estilo_boton = {"font": ("Segoe UI", 10, "bold"), "width": 14, "height": 1, "padx": 5, "pady": 5}
     colores = {
         "Agregar": "#15CC1B",
@@ -223,7 +226,7 @@ def abrir_agregar_cliente(root):
         "Limpiar": "#EF6F0D",
         "Cerrar": "#000000"
     }
-
+    #Acciones con sus respectivas funciones
     acciones = [
         ("Agregar", agregar_cliente),
         ("Modificar", modificar_cliente),
@@ -234,7 +237,7 @@ def abrir_agregar_cliente(root):
 
     for i, (texto, accion) in enumerate(acciones):
         tk.Button(frame_botones, text=texto, command=accion, bg=colores[texto], fg="white", **estilo_boton).grid(row=0, column=i, padx=6)
-
+    #columnas del treeview con datos de los clientes
     columnas = ("nombre", "dni", "telefono", "email", "membresia", "plan", "fecha_ingreso", "tipo_pago")
     tree = ttk.Treeview(ventana, columns=columnas, show="headings")
     for col in columnas:

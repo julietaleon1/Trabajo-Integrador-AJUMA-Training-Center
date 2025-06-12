@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
 from agregar_cliente import abrir_agregar_cliente
 from ver_clientes import abrir_ver_clientes
@@ -9,13 +9,16 @@ from exportar import abrir_ventana_exportar
 import subprocess
 import sys
 
+# ========== CONFIGURACIÓN ==========
+CONTRASEÑA_CORRECTA = "ajumagym"
+
 # ========== FUNCIONES ==========
 def salir():
     root.destroy()
 
 def volver_al_menu():
     root.deiconify()
-    
+
 def animar_titulo(texto_completo, etiqueta, i=0):
     if i <= len(texto_completo):
         etiqueta.config(text=texto_completo[:i])
@@ -37,10 +40,40 @@ def animar_hover_boton(boton, color_base, color_hover):
     boton.bind("<Enter>", ampliar)
     boton.bind("<Leave>", reducir)
 
+# ========== FUNCIONES DE ACCESO ==========
+def mostrar_login():
+    login_ventana = tk.Toplevel()
+    login_ventana.title("Acceso al Sistema")
+    login_ventana.geometry("400x200")
+    login_ventana.configure(bg="#111111")
+    login_ventana.grab_set()  # Bloquea interacción con root
+    login_ventana.resizable(False, False)
+
+    tk.Label(login_ventana, text="Ingrese la contraseña:", font=("Segoe UI", 14), bg="#111111", fg="white").pack(pady=20)
+    entry_contraseña = tk.Entry(login_ventana, show="*", font=("Segoe UI", 14), width=25)
+    entry_contraseña.pack()
+
+    def verificar_contraseña():
+        if entry_contraseña.get() == CONTRASEÑA_CORRECTA:
+            login_ventana.destroy()
+            iniciar_menu()
+        else:
+            messagebox.showerror("Error", "Contraseña incorrecta.")
+
+    tk.Button(login_ventana, text="Ingresar", command=verificar_contraseña,
+              font=("Segoe UI", 12), bg="#333333", fg="white").pack(pady=20)
+
+    # Permitir Enter para ingresar
+    login_ventana.bind("<Return>", lambda e: verificar_contraseña())
+
+def iniciar_menu():
+    root.deiconify()
+
 # ========== VENTANA PRINCIPAL ==========
 root = tk.Tk()
 root.title("Sistema de Gestión de Gimnasio")
 root.attributes('-fullscreen', True)
+root.withdraw()  # Oculta la ventana principal hasta ingresar contraseña
 
 # Fondo
 imagen_fondo = Image.open("C:/Users/Usuario/Desktop/Gestion GImnasio Ajuma Traingin center/Imagen Gimnasio IA.jpg")
@@ -70,15 +103,10 @@ def crear_boton(texto, comando):
     animar_hover_boton(btn, "#222222", "#444444")
 
 crear_boton("Gestionar Clientes", lambda: (root.withdraw(), abrir_agregar_cliente(root)))
-
 crear_boton("Ver Clientes", lambda: (root.withdraw(), abrir_ver_clientes(root)))
-
 crear_boton("Ver Rutinas", lambda: (root.withdraw(), abrir_rutina(root, volver_al_menu)))
-
 crear_boton("Profesor", lambda: (root.withdraw(), abrir_modulo_profesores(volver_al_menu)))
-
 crear_boton("Exportar", lambda: (root.withdraw(), abrir_ventana_exportar(root, volver_al_menu)))
-
 crear_boton("Salir", salir)
 
 # Script de recordatorio
@@ -87,4 +115,8 @@ subprocess.Popen([sys.executable, "RecordatorioVencimiento.py"])
 # Escape en menú principal cierra programa
 root.bind('<Escape>', lambda e: salir())
 
+# Mostrar pantalla de login
+mostrar_login()
+
+# Bucle principal
 root.mainloop()
