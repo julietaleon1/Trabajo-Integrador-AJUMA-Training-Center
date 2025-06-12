@@ -1,56 +1,67 @@
-import mercadopago
-import smtplib
-from email.message import EmailMessage
+import mercadopago  # SDK de MercadoPago para generar links de pago
+import smtplib  # Librería estándar para enviar correos con SMTP
+from email.message import EmailMessage  # Clase para construir emails
 
-MP_ACCESS_TOKEN = "APP_USR-3725378194687616-060622-013c07d1a71e2e0a0c1518ed3f2c7b35-1126088577"
-SMTP_SERVER = 'smtp.gmail.com'
-SMTP_PORT = 465
-REMITENTE_EMAIL = "ajumatrainingcenter@gmail.com"
-REMITENTE_PASSWORD = "uuqi sqqd ndig ttna"
+# === CREDENCIALES Y CONFIGURACIÓN ===
+MP_ACCESS_TOKEN = "APP_USR-3725378194687616-060622-013c07d1a71e2e0a0c1518ed3f2c7b35-1126088577"  # Token de acceso a tu cuenta de MercadoPago
+SMTP_SERVER = 'smtp.gmail.com'  # Servidor SMTP de Gmail
+SMTP_PORT = 465  # Puerto para SMTP con SSL
+REMITENTE_EMAIL = "ajumatrainingcenter@gmail.com"  # Dirección de correo que envía los emails
+REMITENTE_PASSWORD = "uuqi sqqd ndig ttna"  # Contraseña de aplicación para Gmail (no es la contraseña de la cuenta)
 
+# === FUNCIÓN PARA GENERAR UN LINK DE PAGO EN MERCADOPAGO ===
 def crear_link_pago(nombre, email, monto, descripcion, cliente_id=None):
-    sdk = mercadopago.SDK(MP_ACCESS_TOKEN)
+    sdk = mercadopago.SDK(MP_ACCESS_TOKEN)  # Se instancia el objeto SDK con tu token de acceso
     preference_data = {
         "items": [
             {
-                "title": descripcion,
-                "description": f"Pago de cuota para {nombre}",
-                "quantity": 1,
-                "currency_id": "ARS",
-                "unit_price": monto
+                "title": descripcion,  # Título del producto o servicio
+                "description": f"Pago de cuota para {nombre}",  # Descripción más detallada
+                "quantity": 1,  # Siempre es 1 cuota
+                "currency_id": "ARS",  # Moneda en Pesos Argentinos
+                "unit_price": monto  # Monto a cobrar
             }
         ],
         "payer": {
-            "name": nombre,
-            "email": email,
+            "name": nombre,  # Nombre del cliente
+            "email": email,  # Email del cliente
         },
-        "back_urls": {
+        "back_urls": {  # URLs a las que redirige según el estado del pago
             "success": "https://1h6gztrs-8000.brs.devtunnels.ms/success",
             "failure": "https://www.example.com/failure",
             "pending": "https://www.example.com/pending"
         },
-        "auto_return": "approved",
+        "auto_return": "approved",  # Redirige automáticamente al success si el pago fue aprobado
         "metadata": {
-            "cliente_id": cliente_id if cliente_id else None
+            "cliente_id": cliente_id if cliente_id else None  # Info adicional útil para identificar al cliente internamente
         }
     }
-    response = sdk.preference().create(preference_data)
+    response = sdk.preference().create(preference_data)  # Se crea la preferencia (link de pago)
     if response["status"] == 201:
-        return response["response"]["init_point"]
+        return response["response"]["init_point"]  # Se retorna el link al que el cliente debe ingresar para pagar
     else:
-        return None
+        return None  # Si hubo un error, se retorna None
 
-def enviar_bienvenida(nombre, email, plan,cliente_id):
+# === FUNCIÓN PARA ENVIAR EMAIL DE BIENVENIDA CON EL LINK DE PAGO ===
+def enviar_bienvenida(nombre, email, plan, cliente_id):
+    # Se define el monto según el plan elegido
     monto = 10 if plan == "Mensual" else 11 if plan == "Trimestral" else 12
-    descripcion = f"Cuota {plan} Ajuma Training Center"
-    link_pago = crear_link_pago(nombre, email, monto, descripcion,cliente_id)
-    if not link_pago:
-        return False
-    msg = EmailMessage()
-    msg['Subject'] = f"¡Bienvenido/a a Ajuma Training Center, {nombre}!"
-    msg['From'] = REMITENTE_EMAIL
-    msg['To'] = email
+    descripcion = f"Cuota {plan} Ajuma Training Center"  # Descripción visible en MercadoPago
+    link_pago = crear_link_pago(nombre, email, monto, descripcion, cliente_id)  # Se genera el link de pago
 
+    if not link_pago:
+        return False  # Si no se pudo generar el link, se sale de la función
+
+    # Se construye el mensaje de correo
+    msg = EmailMessage()
+    msg['Subject'] = f"¡Bienvenido/a a Ajuma Training Center, {nombre}!"  # Asunto del email
+    msg['From'] = REMITENTE_EMAIL  # Remitente
+    msg['To'] = email  # Destinatario
+
+    # Contenido en texto plano como alternativa de respaldo
+    msg.set_content("Bienvenido/a a Ajuma Training Center. Realice su pago aquí: " + link_pago)
+
+    # Contenido en HTML más atractivo visualmente
     cuerpo_html = f"""
     <html>
      <head>
@@ -91,22 +102,23 @@ def enviar_bienvenida(nombre, email, plan,cliente_id):
     </body>
     </html>
     """
-    msg.set_content("Bienvenido/a a Ajuma Training Center. Realice su pago aquí: " + link_pago)
-    msg.add_alternative(cuerpo_html, subtype='html')
+    msg.add_alternative(cuerpo_html, subtype='html')  # Se añade la versión HTML al correo
 
-    # Adjuntar la imagen del footer (logo-ajuma.png debe estar en la misma carpeta)
+    # === Se adjunta el logo de forma embebida para mostrarlo en el pie del email ===
     import os
-    logo_path = os.path.join(os.path.dirname(__file__), "logo-ajuma.png")
+    logo_path = os.path.join(os.path.dirname(__file__), "logo-ajuma.png")  # Ruta del archivo del logo
     if os.path.exists(logo_path):
         with open(logo_path, 'rb') as img:
             msg.get_payload()[1].add_related(
                 img.read(),
                 maintype='image',
                 subtype='png',
-                cid="<logo-ajuma.png>"
+                cid="<logo-ajuma.png>"  # ID que se usa en el HTML con "cid:"
             )
 
+    # === ENVÍO DEL CORREO POR SMTP SEGURo (SSL) ===
     with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as smtp:
-        smtp.login(REMITENTE_EMAIL, REMITENTE_PASSWORD)
-        smtp.send_message(msg)
-    return True
+        smtp.login(REMITENTE_EMAIL, REMITENTE_PASSWORD)  # Se inicia sesión
+        smtp.send_message(msg)  # Se envía el correo
+
+    return True  # Si todo salió bien, se retorna True
