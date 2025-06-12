@@ -6,233 +6,282 @@ from reportlab.lib.pagesizes import letter
 from reportlab.lib.utils import ImageReader
 import openpyxl
 from openpyxl.chart import BarChart, Reference
-from openpyxl.styles import Font, Alignment
+from openpyxl.styles import Font, Alignment, numbers
+from openpyxl.drawing.image import Image as XLImage
 
-RUTA_CLIENTES = "clientes.json"
-RUTA_LOGO = "logo-ajuma.png"  
+# Configuración de rutas (ajustar según necesidad)
+RUTA_CLIENTES = os.path.join(os.path.dirname(__file__), "clientes.json")
+RUTA_LOGO = os.path.join(os.path.dirname(__file__), "logo.png")  # Cambiar a ruta relativa
 
-# Valores de los planes
+# Valores de los planes (actualizables)
 VALORES_PLAN = {
     "mensual": 30000,
     "trimestral": 72000,  
     "anual": 216000
 }
 
+# Métodos de pago aceptados (para validación)
+METODOS_PAGO_ACEPTADOS = ["efectivo", "transferencia", "tarjeta", "mercado pago"]
+
 def cargar_clientes():
-    """Carga la lista de clientes desde un archivo JSON."""
-    if os.path.exists(RUTA_CLIENTES):
+    """Carga y valida la lista de clientes desde un archivo JSON."""
+    if not os.path.exists(RUTA_CLIENTES):
+        print(f"Archivo no encontrado: {RUTA_CLIENTES}")
+        return []
+    
+    try:
         with open(RUTA_CLIENTES, "r", encoding="utf-8") as f:
-            try:
-                return json.load(f)
-            except json.JSONDecodeError:
-                print("Error al decodificar JSON. Archivo corrupto o vacío.")
-                return []
+            clientes = json.load(f)
+            
+            # Validación básica de datos
+            clientes_validos = []
+            for cliente in clientes:
+                if not isinstance(cliente, dict):
+                    continue
+                
+                # Normalizar método de pago
+                if "pago" in cliente:
+                    cliente["pago"] = cliente["pago"].lower()
+                    if cliente["pago"] not in METODOS_PAGO_ACEPTADOS:
+                        cliente["pago"] = "efectivo"  # Valor por defecto
+                
+                clientes_validos.append(cliente)
+            
+            return clientes_validos
+            
+    except json.JSONDecodeError:
+        print("Error: Archivo JSON corrupto o mal formateado.")
+    except Exception as e:
+        print(f"Error inesperado al cargar clientes: {e}")
+    
     return []
 
 def exportar_factura_pdf(cliente, nombre_pdf="factura.pdf", ruta_logo=RUTA_LOGO):
-    """Genera una factura en PDF para un cliente dado."""
+    """Genera una factura en PDF para un cliente con mejor formato."""
     try:
         c = canvas.Canvas(nombre_pdf, pagesize=letter)
         ancho, alto = letter
 
-        # Logo del gym como marca de agua 
+        # Configuración de márgenes
+        margen_izq = 50
+        margen_sup = alto - 100
+        espacio_linea = 20
+
+        # Logo como marca de agua (con mejor manejo de errores)
         if os.path.exists(ruta_logo):
             try:
                 logo = ImageReader(ruta_logo)
                 c.saveState()
                 c.translate(ancho / 2, alto / 2)
                 c.setFillAlpha(0.1)
-                logo_ancho = 300
-                logo_alto = 300
-                c.drawImage(logo, -logo_ancho / 2, -logo_alto / 2, 
-                          width=logo_ancho, height=logo_alto, mask='auto')
+                c.drawImage(logo, -150, -150, width=300, height=300, mask='auto')
                 c.restoreState()
             except Exception as e:
-                print(f"Advertencia: No se pudo cargar el logo: {e}")
+                print(f"Advertencia: Error al procesar logo - {e}")
 
-        # Títulos
-        c.setFont("Helvetica-Bold", 20)
-        c.drawCentredString(ancho / 2, alto - 100, "Factura Tipo X")
-        c.setFont("Helvetica-Bold", 14)
-        c.drawString(50, alto - 150, "AJUMA Training Center")
+        # Encabezado
+        c.setFont("Helvetica-Bold", 18)
+        c.drawCentredString(ancho / 2, margen_sup, "AJUMA TRAINING CENTER")
         c.setFont("Helvetica", 12)
-        c.drawString(50, alto - 170, "Dirección: Formosa, Argentina")
-        c.drawString(50, alto - 190, "Email: ajumatrainingcenter@gmail.com")
+        c.drawString(margen_izq, margen_sup - 30, "Dirección: Formosa, Argentina")
+        c.drawString(margen_izq, margen_sup - 50, "Email: ajumatrainingcenter@gmail.com")
+        c.drawString(margen_izq, margen_sup - 70, "Teléfono: +54 3704-123456")
 
-        # Fecha y hora
-        fecha_obj = datetime.now()
-        fecha_str = fecha_obj.strftime("%d/%m/%Y")
-        hora_str = fecha_obj.strftime("%H:%M:%S")
-
-        c.drawString(400, alto - 150, f"Fecha: {fecha_str}")
-        c.drawString(400, alto - 170, f"Hora: {hora_str}")
+        # Información de factura
+        c.setFont("Helvetica-Bold", 16)
+        c.drawCentredString(ancho / 2, margen_sup - 100, "FACTURA")
+        
+        fecha_actual = datetime.now()
+        c.setFont("Helvetica", 10)
+        c.drawRightString(ancho - margen_izq, margen_sup - 100, f"Fecha: {fecha_actual.strftime('%d/%m/%Y')}")
+        c.drawRightString(ancho - margen_izq, margen_sup - 115, f"Hora: {fecha_actual.strftime('%H:%M:%S')}")
 
         # Datos del cliente
         c.setFont("Helvetica-Bold", 14)
-        c.drawString(50, alto - 230, "Datos del Cliente")
+        c.drawString(margen_izq, margen_sup - 150, "DATOS DEL CLIENTE:")
         c.setFont("Helvetica", 12)
 
-        y = alto - 250
-        campos = ["nombre", "dni", "telefono", "email", "membresia", "plan", "fecha_ingreso", "pago"]
-        for campo in campos:
+        y_pos = margen_sup - 170
+        campos = [
+            ("Nombre", "nombre"),
+            ("DNI", "dni"),
+            ("Teléfono", "telefono"),
+            ("Email", "email"),
+            ("Membresía", "membresia"),
+            ("Plan", "plan"),
+            ("Fecha Ingreso", "fecha_ingreso"),
+            ("Método Pago", "pago")
+        ]
+
+        for etiqueta, campo in campos:
             valor = cliente.get(campo, "N/A")
-            etiqueta = campo.capitalize().replace('_', ' ')
-            c.drawString(70, y, f"{etiqueta}: {valor}")
-            y -= 20
+            # Formateo especial para algunos campos
+            if campo == "pago":
+                valor = valor.capitalize()
+            elif campo == "plan":
+                valor = valor.capitalize() + f" (${VALORES_PLAN.get(valor.lower(), 0):,})"
+            
+            c.drawString(margen_izq + 20, y_pos, f"{etiqueta}: {valor}")
+            y_pos -= espacio_linea
+
+        # Pie de página
+        c.setFont("Helvetica-Oblique", 10)
+        c.drawCentredString(ancho / 2, 50, "¡Gracias por elegir AJUMA Training Center!")
+        c.drawCentredString(ancho / 2, 30, "Sistema de gestión desarrollado por [Tu Nombre]")
 
         c.save()
-        print(f"Factura PDF generada: {nombre_pdf}")
+        print(f"✓ Factura PDF generada: {nombre_pdf}")
         return True
+        
     except Exception as e:
-        print(f"Error al generar PDF: {e}")
+        print(f"✗ Error al generar PDF: {e}")
         return False
 
 def calcular_monto_mensual(plan):
-    """Devuelve el monto mensual estimado según el plan."""
-    plan = plan.lower() if plan else ""
-    if plan == "mensual":
-        return VALORES_PLAN["mensual"]
-    elif plan == "trimestral":
-        return VALORES_PLAN["trimestral"] / 3
-    elif plan == "anual":
-        return VALORES_PLAN["anual"] / 12
-    else:
+    """Calcula el monto mensual con validación mejorada."""
+    if not plan or not isinstance(plan, str):
         return 0
+        
+    plan = plan.lower()
+    return VALORES_PLAN.get(plan, 0) / (3 if plan == "trimestral" else 12 if plan == "anual" else 1)
 
 def exportar_excel_con_grafico(clientes, nombre_archivo="clientes_ganancias.xlsx"):
-    """Genera un archivo Excel con clientes, su info y gráfico de ganancia mensual."""
+    """Genera un Excel mejor formateado con gráficos y resumen financiero."""
+    if not clientes:
+        print("No hay datos de clientes para exportar")
+        return False
+
     try:
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = "Clientes"
 
-        # Encabezados
+        # Encabezados con estilo mejorado
         encabezados = [
-            "Nombre", "DNI", "Teléfono", "Email", "Membresía", "Plan",
-            "Método de Pago", "Fecha de Ingreso", "Monto Mensual"
+            "Nombre", "DNI", "Teléfono", "Email", 
+            "Membresía", "Plan", "Método de Pago", 
+            "Fecha Ingreso", "Monto Mensual ($)"
         ]
 
-        # Escribir encabezados
-        for col, encabezado in enumerate(encabezados, start=1):
+        for col, encabezado in enumerate(encabezados, 1):
             celda = ws.cell(row=1, column=col, value=encabezado)
-            celda.font = Font(bold=True)
-            celda.alignment = Alignment(horizontal='center')
+            celda.font = Font(bold=True, color="FFFFFF")
+            celda.fill = openpyxl.styles.PatternFill("solid", fgColor="4F81BD")
+            celda.alignment = Alignment(horizontal="center")
 
+        # Datos de clientes
         fila = 2
-        ganancia_mensual_total = 0
-        montos_por_metodo = {"efectivo": 0, "transferencia": 0, "tarjeta": 0}
+        ganancia_total = 0
+        montos_por_metodo = {metodo: 0 for metodo in METODOS_PAGO_ACEPTADOS}
 
         for cliente in clientes:
-            nombre = cliente.get("nombre", "")
-            dni = cliente.get("dni", "")
-            telefono = cliente.get("telefono", "")
-            email = cliente.get("email", "")
-            membresia = cliente.get("membresia", "")
             plan = cliente.get("plan", "").lower()
-            pago = cliente.get("pago", "").lower()
-            fecha_ingreso = cliente.get("fecha_ingreso", "")
-
-            monto_mensual = calcular_monto_mensual(plan)
-            ganancia_mensual_total += monto_mensual
+            pago = cliente.get("pago", "efectivo").lower()
+            monto = calcular_monto_mensual(plan)
             
-            # Sumar al método de pago correspondiente
-            if pago in montos_por_metodo:
-                montos_por_metodo[pago] += monto_mensual
-            else:
-                montos_por_metodo["efectivo"] += monto_mensual  # Por defecto
+            ganancia_total += monto
+            montos_por_metodo[pago] += monto
 
-            datos_fila = [
-                nombre, dni, telefono, email, membresia, plan,
-                pago.capitalize(), fecha_ingreso, monto_mensual
+            datos = [
+                cliente.get("nombre", ""),
+                cliente.get("dni", ""),
+                cliente.get("telefono", ""),
+                cliente.get("email", ""),
+                cliente.get("membresia", ""),
+                plan.capitalize(),
+                pago.capitalize(),
+                cliente.get("fecha_ingreso", ""),
+                monto
             ]
 
-            for col, valor in enumerate(datos_fila, start=1):
+            for col, valor in enumerate(datos, 1):
                 ws.cell(row=fila, column=col, value=valor)
+            
             fila += 1
 
-        # Resumen de ganancias por método de pago
-        ws.cell(row=fila+2, column=1, value="RESUMEN DE GANANCIAS").font = Font(bold=True)
-        
-        # Ganancia total mensual
-        ws.cell(row=fila+3, column=1, value="Ganancia Mensual Total:")
-        celda_total = ws.cell(row=fila+3, column=2, value=ganancia_mensual_total)
-        celda_total.font = Font(bold=True)
-        
-        # Ganancias por método de pago
-        row_counter = fila+4
-        ws.cell(row=row_counter, column=1, value="Ganancias por Método de Pago:").font = Font(bold=True)
-        row_counter += 1
-        
-        for metodo, monto in montos_por_metodo.items():
-            if monto > 0:  # Solo mostrar métodos con montos positivos
-                ws.cell(row=row_counter, column=1, value=f"{metodo.capitalize()}:")
-                ws.cell(row=row_counter, column=2, value=monto)
-                row_counter += 1
+        # Formato de moneda para montos
+        for row in range(2, fila):
+            ws.cell(row=row, column=9).number_format = numbers.FORMAT_CURRENCY_USD_SIMPLE
 
-        # Gráfico de barras
+        # Resumen financiero
+        fila_resumen = fila + 2
+        ws.cell(row=fila_resumen, column=1, value="RESUMEN FINANCIERO").font = Font(bold=True, size=14)
+        
+        # Ganancia total
+        ws.cell(row=fila_resumen+1, column=1, value="Ganancia Mensual Total:").font = Font(bold=True)
+        ws.cell(row=fila_resumen+1, column=2, value=ganancia_total).font = Font(bold=True)
+        ws.cell(row=fila_resumen+1, column=2).number_format = numbers.FORMAT_CURRENCY_USD_SIMPLE
+
+        # Ganancias por método de pago
+        fila_metodos = fila_resumen + 3
+        ws.cell(row=fila_metodos, column=1, value="Método de Pago").font = Font(bold=True)
+        ws.cell(row=fila_metodos, column=2, value="Monto ($)").font = Font(bold=True)
+        
+        fila_actual = fila_metodos + 1
+        for metodo, monto in montos_por_metodo.items():
+            if monto > 0:
+                ws.cell(row=fila_actual, column=1, value=metodo.capitalize())
+                ws.cell(row=fila_actual, column=2, value=monto).number_format = numbers.FORMAT_CURRENCY_USD_SIMPLE
+                fila_actual += 1
+
+        # Gráfico de ganancias por método
         chart = BarChart()
-        chart.title = "Ganancias por Método de Pago"
+        chart.type = "col"
+        chart.style = 10
+        chart.title = "Distribución de Ganancias por Método de Pago"
         chart.y_axis.title = "Monto ($)"
         chart.x_axis.title = "Método de Pago"
 
-        # Preparar datos para el gráfico
-        data_labels = []
-        data_values = []
-        for metodo, monto in montos_por_metodo.items():
-            if monto > 0:
-                data_labels.append(metodo.capitalize())
-                data_values.append(monto)
-
-        # Escribir datos para el gráfico
-        start_row = row_counter + 2
-        for i, (label, value) in enumerate(zip(data_labels, data_values), start=1):
-            ws.cell(row=start_row+i, column=1, value=label)
-            ws.cell(row=start_row+i, column=2, value=value)
-
-        # Referencias para el gráfico
-        data = Reference(ws, min_col=2, min_row=start_row+1, max_row=start_row+len(data_values))
-        categories = Reference(ws, min_col=1, min_row=start_row+1, max_row=start_row+len(data_values))
+        data = Reference(ws, min_col=2, min_row=fila_metodos+1, max_row=fila_actual-1)
+        categorias = Reference(ws, min_col=1, min_row=fila_metodos+1, max_row=fila_actual-1)
         
         chart.add_data(data, titles_from_data=False)
-        chart.set_categories(categories)
+        chart.set_categories(categorias)
+        chart.shape = 4
+        
+        ws.add_chart(chart, f"D{fila_resumen}")
 
-        # Añadir gráfico
-        ws.add_chart(chart, f"D{start_row}")
-
-        # Ajustar anchos de columnas
+        # Ajustar anchos de columnas automáticamente
         for col in ws.columns:
-            max_length = 0
-            column = col[0].column_letter
-            for cell in col:
-                try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(str(cell.value))
-                except:
-                    pass
-            adjusted_width = (max_length + 2)
-            ws.column_dimensions[column].width = adjusted_width
+            max_length = max(len(str(cell.value)) for cell in col) + 2
+            ws.column_dimensions[col[0].column_letter].width = max_length
 
         wb.save(nombre_archivo)
-        print(f"Excel generado: {nombre_archivo}")
+        print(f"✓ Excel generado: {nombre_archivo}")
+        
+        # Mostrar resumen por consola
+        print(f"\nResumen financiero:")
+        print(f"- Ganancia total mensual: ${ganancia_total:,.2f}")
+        for metodo, monto in montos_por_metodo.items():
+            if monto > 0:
+                print(f"- {metodo.capitalize()}: ${monto:,.2f}")
+        
         return True
+        
     except Exception as e:
-        print(f"Error al generar Excel: {e}")
+        print(f"✗ Error al generar Excel: {e}")
         return False
 
 if __name__ == "__main__":
+    print("\n" + "="*50)
+    print(" SISTEMA DE GESTIÓN AJUMA TRAINING CENTER")
+    print("="*50 + "\n")
+
+    # Cargar datos
     clientes = cargar_clientes()
-    
+    print(f"Clientes cargados: {len(clientes)}")
+
     if not clientes:
-        print("No hay clientes para procesar.")
+        print("No hay clientes para procesar. Verifique el archivo clientes.json")
     else:
-        # Exportar factura PDF para el primer cliente que paga en efectivo
+        # Exportar factura PDF (primer cliente en efectivo)
         cliente_efectivo = next((c for c in clientes if c.get("pago", "").lower() == "efectivo"), None)
         if cliente_efectivo:
-            if not exportar_factura_pdf(cliente_efectivo, nombre_pdf="factura_cliente_efectivo.pdf"):
-                print("Hubo un problema al generar el PDF.")
+            if not exportar_factura_pdf(cliente_efectivo):
+                print("Advertencia: No se pudo generar la factura PDF")
         else:
-            print("No se encontró cliente que pague en efectivo para exportar PDF.")
+            print("Info: No se encontraron clientes con pago en efectivo para factura")
 
-        # Exportar Excel con todos los clientes
-        if not exportar_excel_con_grafico(clientes, nombre_archivo="clientes_ganancias.xlsx"):
-            print("Hubo un problema al generar el Excel.")
+        # Exportar reporte Excel completo
+        if not exportar_excel_con_grafico(clientes):
+            print("Error: No se pudo generar el reporte Excel")
