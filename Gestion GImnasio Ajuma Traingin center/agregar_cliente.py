@@ -11,7 +11,7 @@ import random
 from bienvenida_cliente import enviar_bienvenida
 
 #creamos constante de archivo json
-RUTA_ARCHIVO = os.path.join(os.path.dirname(__file__), "clientes.json")
+RUTA_ARCHIVO = "clientes.json"
 
 #Funcion principal
 def abrir_agregar_cliente(root):
