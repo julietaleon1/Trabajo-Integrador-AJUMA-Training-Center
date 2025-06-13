@@ -18,7 +18,27 @@ def abrir_agregar_cliente(root):
     ventana = tk.Toplevel(root)
     ventana.title("Gestión de Clientes")
     ventana.attributes("-fullscreen", True)
-    ventana.configure(bg="#1e1e1e")
+    ventana.configure(bg="#2a2a2a")
+    
+    # Estilo mejorado para los widgets
+    estilo = {
+        "bg": "#2a2a2a",
+        "fg": "white",
+        "font": ("Segoe UI", 11),
+        "relief": "flat",
+        "bd": 0
+    }
+    
+    estilo_botones = {
+        "font": ("Segoe UI", 10, "bold"),
+        "width": 14,
+        "height": 1,
+        "padx": 5,
+        "pady": 5,
+        "bd": 0,
+        "highlightthickness": 0
+    }
+
     #Funcion para cerrar ventana 
     def cerrar_ventana():
         ventana.destroy()
@@ -29,6 +49,7 @@ def abrir_agregar_cliente(root):
     ventana.protocol("WM_DELETE_WINDOW", cerrar_ventana)
 
     entradas = []
+    
     #cargar datos cliente
     def cargar_clientes():
         if os.path.exists(RUTA_ARCHIVO):
@@ -38,10 +59,12 @@ def abrir_agregar_cliente(root):
                 except json.JSONDecodeError:
                     return []
         return []
+    
     #guardar datos clientes
     def guardar_clientes(clientes):
         with open(RUTA_ARCHIVO, "w", encoding="utf-8") as archivo:
             json.dump(clientes, archivo, indent=4)
+    
     #actualizar json desde el treeview
     def actualizar_json_desde_treeview():
         datos = []
@@ -60,7 +83,8 @@ def abrir_agregar_cliente(root):
                 "tipo_pago": valores[7],
             })
         guardar_clientes(datos)
-
+    
+    #validacion datos
     def validar_nombre(nombre):
         return nombre.replace(" ", "").isalpha()
 
@@ -73,6 +97,7 @@ def abrir_agregar_cliente(root):
                 entrada.delete(0, tk.END)
             elif isinstance(entrada, DateEntry):
                 entrada.set_date(datetime.today())
+    
     #Funcion para agregar cliente y validaciones
     def agregar_cliente():
         datos = []
@@ -116,6 +141,7 @@ def abrir_agregar_cliente(root):
                 print(f"Error al enviar correo: {e}")
         else:
             messagebox.showwarning("Campos incompletos", "Complete todos los campos.")
+    
     #Poder seleccionar cliente en el tree
     def seleccionar_cliente(event):
         item = tree.selection()
@@ -131,6 +157,7 @@ def abrir_agregar_cliente(root):
                         entradas[i].set_date(fecha_dt)
                     except Exception:
                         entradas[i].set_date(datetime.today())
+    
     #Modifcar cliente
     def modificar_cliente():
         item = tree.selection()
@@ -155,10 +182,14 @@ def abrir_agregar_cliente(root):
 
     confirmacion_activa = [False]
 
-    frame_confirmacion = tk.Frame(ventana, bg="#1e1e1e")
-    label_confirmacion = tk.Label(frame_confirmacion, text="¿Seguro que querés eliminar este cliente?", font=("Segoe UI", 11), fg="white", bg="#1e1e1e")
-    boton_confirmar = tk.Button(frame_confirmacion, text="Sí, eliminar", bg="#E72113", fg="white", font=("Segoe UI", 10, "bold"), command=lambda: confirmar_eliminacion())
-    boton_cancelar = tk.Button(frame_confirmacion, text="Cancelar", bg="#444444", fg="white", font=("Segoe UI", 10, "bold"), command=lambda: cancelar_eliminacion())
+    frame_confirmacion = tk.Frame(ventana, bg="#2a2a2a")
+    label_confirmacion = tk.Label(frame_confirmacion, text="¿Seguro que querés eliminar este cliente?", 
+                                font=("Segoe UI", 11), fg="white", bg="#2a2a2a")
+    boton_confirmar = tk.Button(frame_confirmacion, text="Sí, eliminar", bg="#E72113", 
+                              fg="white", font=("Segoe UI", 10, "bold"), command=lambda: confirmar_eliminacion())
+    boton_cancelar = tk.Button(frame_confirmacion, text="Cancelar", bg="#444444", 
+                             fg="white", font=("Segoe UI", 10, "bold"), command=lambda: cancelar_eliminacion())
+    
     #Eliminar cliente
     def eliminar_cliente():
         item = tree.selection()
@@ -187,8 +218,39 @@ def abrir_agregar_cliente(root):
         boton_cancelar.pack_forget()
         frame_confirmacion.pack_forget()
 
-    frame_form = tk.Frame(ventana, bg="#1e1e1e")
-    frame_form.pack(pady=20)
+    # Frame de búsqueda
+    frame_busqueda = tk.Frame(ventana, bg="#2a2a2a")
+    frame_busqueda.pack(pady=10, padx=20, fill="x")
+    
+    lbl_buscar = tk.Label(frame_busqueda, text="Buscar:", **estilo)
+    lbl_buscar.pack(side="left", padx=5)
+    
+    entry_busqueda = tk.Entry(frame_busqueda, width=50, font=("Segoe UI", 11), 
+                            bg="#3a3a3a", fg="white", insertbackground="white", relief="flat")
+    entry_busqueda.pack(side="left", padx=5, fill="x", expand=True)
+    
+    btn_buscar = tk.Button(frame_busqueda, text="Buscar", bg="#1E90FF", fg="white", 
+                         command=lambda: buscar_cliente(), **estilo_botones)
+    btn_buscar.pack(side="left", padx=5)
+    
+    def buscar_cliente():
+        termino = entry_busqueda.get().lower()
+        if not termino:
+            return
+            
+        for item in tree.get_children():
+            valores = tree.item(item)["values"]
+            if any(termino in str(valor).lower() for valor in valores):
+                tree.selection_set(item)
+                tree.focus(item)
+                tree.see(item)
+                break
+        else:
+            messagebox.showinfo("Búsqueda", "No se encontraron coincidencias.")
+
+    frame_form = tk.Frame(ventana, bg="#2a2a2a")
+    frame_form.pack(pady=20, padx=20)
+    
     #campos o entradas
     campos = [
         ("Nombre", tk.Entry),
@@ -202,23 +264,27 @@ def abrir_agregar_cliente(root):
     ]
 
     for i, (campo, tipo, *opciones) in enumerate(campos):
-        tk.Label(frame_form, text=campo, bg="#1e1e1e", fg="white", font=("Segoe UI", 12)).grid(row=i, column=0, padx=10, pady=8, sticky="e")
+        tk.Label(frame_form, text=campo, **estilo).grid(row=i, column=0, padx=10, pady=8, sticky="e")
 
         if tipo == tk.Entry:
-            entrada = tipo(frame_form, width=50, font=("Segoe UI", 11), bg="#2b2b2b", fg="white", insertbackground="white")
+            entrada = tipo(frame_form, width=50, font=("Segoe UI", 11), 
+                         bg="#3a3a3a", fg="white", insertbackground="white", relief="flat")
         elif tipo == ttk.Combobox:
-            entrada = tipo(frame_form, values=opciones[0], state="readonly", width=47, font=("Segoe UI", 11))
+            entrada = tipo(frame_form, values=opciones[0], state="readonly", width=47, 
+                         font=("Segoe UI", 11), style="TCombobox")
             entrada.current(0)
         elif tipo == DateEntry:
-            entrada = tipo(frame_form, width=47, font=("Segoe UI", 11), background='darkblue', foreground='white', date_pattern="yyyy-mm-dd")
+            entrada = tipo(frame_form, width=47, font=("Segoe UI", 11), 
+                         background='#3a3a3a', foreground='white', 
+                         bordercolor='#3a3a3a', date_pattern="yyyy-mm-dd")
 
-        entrada.grid(row=i, column=1, pady=8)
+        entrada.grid(row=i, column=1, pady=8, sticky="w")
         entradas.append(entrada)
 
-    frame_botones = tk.Frame(ventana, bg="#1e1e1e")
+    frame_botones = tk.Frame(ventana, bg="#2a2a2a")
     frame_botones.pack(pady=15)
+    
     #Colores de botones y estilo
-    estilo_boton = {"font": ("Segoe UI", 10, "bold"), "width": 14, "height": 1, "padx": 5, "pady": 5}
     colores = {
         "Agregar": "#15CC1B",
         "Modificar": "#F321BB",
@@ -226,6 +292,7 @@ def abrir_agregar_cliente(root):
         "Limpiar": "#EF6F0D",
         "Cerrar": "#000000"
     }
+    
     #Acciones con sus respectivas funciones
     acciones = [
         ("Agregar", agregar_cliente),
@@ -236,18 +303,44 @@ def abrir_agregar_cliente(root):
     ]
 
     for i, (texto, accion) in enumerate(acciones):
-        tk.Button(frame_botones, text=texto, command=accion, bg=colores[texto], fg="white", **estilo_boton).grid(row=0, column=i, padx=6)
+        tk.Button(frame_botones, text=texto, command=accion, bg=colores[texto], 
+                fg="white", **estilo_botones).grid(row=0, column=i, padx=6)
+    
+    # Configuración del Treeview con estilo mejorado
+    style = ttk.Style()
+    style.theme_use("clam")
+    style.configure("Treeview", 
+                  background="#3a3a3a",
+                  foreground="white",
+                  fieldbackground="#3a3a3a",
+                  font=("Segoe UI", 10),
+                  rowheight=25,
+                  bordercolor="#3a3a3a")
+    style.configure("Treeview.Heading", 
+                  background="#444444",
+                  foreground="white",
+                  font=("Segoe UI", 11, "bold"),
+                  relief="flat")
+    style.map("Treeview", background=[("selected", "#1E90FF")])
+    
     #columnas del treeview con datos de los clientes
     columnas = ("nombre", "dni", "telefono", "email", "membresia", "plan", "fecha_ingreso", "tipo_pago")
     tree = ttk.Treeview(ventana, columns=columnas, show="headings")
+    
     for col in columnas:
         tree.heading(col, text=col.replace("_", " ").capitalize())
-        tree.column(col, anchor="center", width=140)
+        tree.column(col, anchor="center", width=140, minwidth=100)
 
-    tree.pack(pady=20, fill="both", expand=True)
+    # Añadir scrollbar
+    scrollbar = ttk.Scrollbar(ventana, orient="vertical", command=tree.yview)
+    scrollbar.pack(side="right", fill="y")
+    tree.configure(yscrollcommand=scrollbar.set)
+    
+    tree.pack(pady=20, padx=20, fill="both", expand=True)
 
     tree.bind("<<TreeviewSelect>>", seleccionar_cliente)
 
+    # Cargar datos existentes
     clientes_cargados = cargar_clientes()
     for cliente in clientes_cargados:
         valores = (

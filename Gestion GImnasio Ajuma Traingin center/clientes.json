@@ -1,24 +1,13 @@
 [
     {
-        "id": 94001,
-        "nombre": "Serrano Ulises Ivan",
-        "dni": 46321938,
-        "telefono": 3704375104,
-        "email": "serranouli42@gmail.com",
+        "id": 99214,
+        "nombre": "dadwadaw",
+        "dni": 4324234,
+        "telefono": 432432,
+        "email": "dwawd@",
         "membresia": "Musculacion",
         "plan": "Mensual $30.000",
-        "fecha_ingreso": "2025-06-04",
+        "fecha_ingreso": "2025-06-13",
         "tipo_pago": "Efectivo"
-    },
-    {
-        "id": 28428,
-        "nombre": "Ulises ivan Serrano",
-        "dni": 463213534,
-        "telefono": 31231331,
-        "email": "ulisesserrano4@gmail.com",
-        "membresia": "Pilates",
-        "plan": "Trimestral $72.000",
-        "fecha_ingreso": "2025-05-07",
-        "tipo_pago": "Transferencia"
     }
 ]

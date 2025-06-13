@@ -1,17 +1,18 @@
+#Importacion de codigos
 import tkinter as tk
 from tkinter import ttk, messagebox
 import json
 import os
 from datetime import datetime, timedelta
-
+#creacion de cpnstante arch jspn
 RUTA_ARCHIVO = "clientes.json"
-
+#Funcion principal
 def abrir_ver_clientes(root):
     ventana = tk.Toplevel(root)
     ventana.title("Ver Clientes")
     ventana.attributes("-fullscreen", True)
     ventana.configure(bg="#1e1e1e")
-
+    #cargar datos
     def cargar_clientes():
         if os.path.exists(RUTA_ARCHIVO):
             with open(RUTA_ARCHIVO, "r", encoding="utf-8") as archivo:
@@ -20,11 +21,11 @@ def abrir_ver_clientes(root):
                 except json.JSONDecodeError:
                     return []
         return []
-
+    #guardar datos
     def guardar_clientes(clientes):
         with open(RUTA_ARCHIVO, "w", encoding="utf-8") as archivo:
             json.dump(clientes, archivo, indent=4)
-
+    #eliminar cliente
     def eliminar_cliente():
         item = tree.selection()
         if item:
@@ -34,7 +35,7 @@ def abrir_ver_clientes(root):
                 actualizar_json_desde_treeview()
         else:
             messagebox.showinfo("Seleccionar cliente", "Seleccione un cliente para eliminar.")
-
+    #Actualizar datos desde el tree
     def actualizar_json_desde_treeview():
         datos = []
         for item in tree.get_children():
@@ -51,7 +52,7 @@ def abrir_ver_clientes(root):
                 "tipo_pago": valores[8]
             })
         guardar_clientes(datos)
-
+    #calculo de dias hasta que termine la membresia
     def calcular_dias_restantes(fecha_ingreso_str, plan_str):
         try:
             fecha_ingreso = datetime.strptime(fecha_ingreso_str, "%Y-%m-%d")
@@ -109,7 +110,7 @@ def abrir_ver_clientes(root):
         texto = entry_buscar.get()
         cargar_y_mostrar_clientes(texto)
 
-    # --- Estilos para el Treeview ---
+    #Estilo para el treeview
     style = ttk.Style()
     style.theme_use("default")
     style.configure("Treeview.Heading", background="#333333", foreground="white", font=("Segoe UI", 11, "bold"))

@@ -81,4 +81,3 @@ def abrir_modulo_profesores(callback_volver):
 
     ventana.bind("<Escape>", lambda e: cerrar_ventana())
     ventana.protocol("WM_DELETE_WINDOW", lambda: cerrar_ventana())
-#paapa francisco
