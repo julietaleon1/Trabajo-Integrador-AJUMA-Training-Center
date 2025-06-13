@@ -76,7 +76,7 @@ root.attributes('-fullscreen', True)
 root.withdraw()  # Oculta la ventana principal hasta ingresar contraseña
 
 # Fondo
-imagen_fondo = Image.open("C:/Users/Usuario/Desktop/Gestion GImnasio Ajuma Traingin center/Imagen Gimnasio IA.jpg")
+imagen_fondo = Image.open("./Imagen Gimnasio IA.jpg")
 ancho_pantalla = root.winfo_screenwidth()
 alto_pantalla = root.winfo_screenheight()
 imagen_fondo = imagen_fondo.resize((ancho_pantalla, alto_pantalla))

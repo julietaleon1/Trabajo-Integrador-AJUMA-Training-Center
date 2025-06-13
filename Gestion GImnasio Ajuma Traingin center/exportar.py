@@ -13,7 +13,7 @@ def abrir_ventana_exportar(root, volver_al_menu):
 
     def generar_pdf():
         clientes = cargar_clientes()
-        cliente_efectivo = next((c for c in clientes if c.get("pago", "").lower() == "efectivo"), None)
+        cliente_efectivo = next((c for c in clientes if c.get("tipo_pago", "").lower() == "efectivo"), None)
         if cliente_efectivo:
             exportar_factura_pdf(cliente_efectivo, nombre_pdf="factura_cliente_efectivo.pdf")
         else:

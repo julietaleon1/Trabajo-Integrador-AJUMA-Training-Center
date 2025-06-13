@@ -9,7 +9,7 @@ from openpyxl.chart import BarChart, Reference
 from openpyxl.styles import Font
 
 RUTA_CLIENTES = "clientes.json"
-RUTA_LOGO = "C:/Users/Usuario/Desktop/Gestion GImnasio Ajuma Traingin center/logo-ajuma.png.jpeg"  
+RUTA_LOGO = "./logo-ajuma.png"  # Ruta del logo del gimnasio  
 
 # valores de los planes
 VALORES_PLAN = {
@@ -70,7 +70,7 @@ def exportar_factura_pdf(cliente, nombre_pdf="factura.pdf", ruta_logo=RUTA_LOGO)
     c.setFont("Helvetica", 12)
 
     y = alto - 250
-    campos = ["nombre", "dni", "telefono", "email", "membresia", "plan", "fecha_ingreso", "pago"]
+    campos = ["nombre", "dni", "telefono", "email", "membresia", "plan", "fecha_ingreso", "tipo_pago"]
     for campo in campos:
         valor = cliente.get(campo, "")
         c.drawString(70, y, f"{campo.capitalize().replace('_', ' ')}: {valor}")
@@ -104,10 +104,12 @@ def exportar_excel_con_grafico(clientes, nombre_archivo="clientes_ganancias.xlsx
         "Método de Pago", "Fecha de Ingreso"
     ]
 
-    
-    for col, encabezado in enumerate(encabezados, start=1):
+    # Escribir encabezados y ajustar ancho de columnas
+    anchos = [20, 15, 15, 30, 15, 12, 18, 18]
+    for col, (encabezado, ancho) in enumerate(zip(encabezados, anchos), start=1):
         celda = ws.cell(row=1, column=col, value=encabezado)
         celda.font = Font(bold=True)
+        ws.column_dimensions[openpyxl.utils.get_column_letter(col)].width = ancho
 
     fila = 2
     ganancia_mensual_total = 0
@@ -118,41 +120,53 @@ def exportar_excel_con_grafico(clientes, nombre_archivo="clientes_ganancias.xlsx
         telefono = cliente.get("telefono", "")
         email = cliente.get("email", "")
         membresia = cliente.get("membresia", "")
-        plan = cliente.get("plan", "").lower()
-        pago = cliente.get("pago", "")
+        plan_raw = cliente.get("plan", "").lower()
+        # Extraer solo la palabra clave del plan
+        if "mensual" in plan_raw:
+            plan = "mensual"
+        elif "trimestral" in plan_raw:
+            plan = "trimestral"
+        elif "anual" in plan_raw:
+            plan = "anual"
+        else:
+            plan = ""
+        pago = cliente.get("tipo_pago", "")
         fecha_ingreso = cliente.get("fecha_ingreso", "")
 
         monto_mensual = calcular_monto_mensual(plan)
         ganancia_mensual_total += monto_mensual
 
         datos_fila = [
-            nombre, dni, telefono, email, membresia, plan,
+            nombre, dni, telefono, email, membresia, plan_raw,
             pago, fecha_ingreso
         ]
 
         for col, valor in enumerate(datos_fila, start=1):
             ws.cell(row=fila, column=col, value=valor)
         fila += 1
-
-    # ganancia total mensual 
-    ws.cell(row=fila + 1, column=7, value="Ganancia Mensual Total:")
-    celda_total = ws.cell(row=fila + 1, column=8, value=ganancia_mensual_total)
+        
+    # Mostrar ganancia total mensual justo después de la última fila de clientes
+    ws.cell(row=fila, column=7, value="Ganancia Mensual Total:")
+    celda_total = ws.cell(row=fila, column=8, value=ganancia_mensual_total)
     celda_total.font = Font(bold=True)
 
-    # gráfico de barras para mostrar ganancia mensual total
+    # Agregar una categoría para el gráfico
+    ws.cell(row=fila, column=7, value="Total")
+
+    # Gráfico de barras para mostrar ganancia mensual total
     chart = BarChart()
     chart.title = "Ganancia Mensual Total"
     chart.y_axis.title = "Monto ($)"
     chart.x_axis.title = "Mes"
 
-    # celda de ganancia total para el gráfico
-    data = Reference(ws, min_col=8, min_row=fila + 1, max_row=fila + 1)
-    categories = Reference(ws, min_col=7, min_row=fila + 1, max_row=fila + 1)
+    # Celda de ganancia total para el gráfico
+    data = Reference(ws, min_col=8, min_row=fila, max_row=fila)
+    categories = Reference(ws, min_col=7, min_row=fila, max_row=fila)
     chart.add_data(data, titles_from_data=False)
     chart.set_categories(categories)
 
-    # posición del gráfico
-    ws.add_chart(chart, f"A{fila + 3}")
+    # Posición del gráfico
+    ws.add_chart(chart, f"A{fila + 2}")
 
     wb.save(nombre_archivo)
     print(f"Excel generado: {nombre_archivo}")
