@@ -9,7 +9,7 @@ from openpyxl.chart import BarChart, Reference
 from openpyxl.styles import Font
 
 RUTA_CLIENTES = "clientes.json"
-RUTA_LOGO = "./logo-ajuma.png"  # Ruta del logo del gimnasio  
+RUTA_LOGO = "C:/Users/Usuario/Desktop/git gimnasio/Trabajo-Integrador-AJUMA-Training-Center/Gestion GImnasio Ajuma Traingin center/logo-ajuma.png"  # Ruta del logo del gimnasio  
 
 # valores de los planes
 VALORES_PLAN = {
@@ -85,10 +85,8 @@ def calcular_monto_mensual(plan):
     if plan == "mensual":
         return VALORES_PLAN["mensual"]
     elif plan == "trimestral":
-        # Trimestral equivale a 3 meses, dividimos para obtener mensual promedio
         return VALORES_PLAN["trimestral"] / 3
     elif plan == "anual":
-        # Anual dividido en 12 meses
         return VALORES_PLAN["anual"] / 12
     else:
         return 0
@@ -104,7 +102,6 @@ def exportar_excel_con_grafico(clientes, nombre_archivo="clientes_ganancias.xlsx
         "Método de Pago", "Fecha de Ingreso"
     ]
 
-    # Escribir encabezados y ajustar ancho de columnas
     anchos = [20, 15, 15, 30, 15, 12, 18, 18]
     for col, (encabezado, ancho) in enumerate(zip(encabezados, anchos), start=1):
         celda = ws.cell(row=1, column=col, value=encabezado)
@@ -121,7 +118,7 @@ def exportar_excel_con_grafico(clientes, nombre_archivo="clientes_ganancias.xlsx
         email = cliente.get("email", "")
         membresia = cliente.get("membresia", "")
         plan_raw = cliente.get("plan", "").lower()
-        # Extraer solo la palabra clave del plan
+
         if "mensual" in plan_raw:
             plan = "mensual"
         elif "trimestral" in plan_raw:
@@ -130,6 +127,7 @@ def exportar_excel_con_grafico(clientes, nombre_archivo="clientes_ganancias.xlsx
             plan = "anual"
         else:
             plan = ""
+
         pago = cliente.get("tipo_pago", "")
         fecha_ingreso = cliente.get("fecha_ingreso", "")
 
@@ -145,27 +143,22 @@ def exportar_excel_con_grafico(clientes, nombre_archivo="clientes_ganancias.xlsx
             ws.cell(row=fila, column=col, value=valor)
         fila += 1
         
-    # Mostrar ganancia total mensual justo después de la última fila de clientes
     ws.cell(row=fila, column=7, value="Ganancia Mensual Total:")
     celda_total = ws.cell(row=fila, column=8, value=ganancia_mensual_total)
     celda_total.font = Font(bold=True)
 
-    # Agregar una categoría para el gráfico
     ws.cell(row=fila, column=7, value="Total")
 
-    # Gráfico de barras para mostrar ganancia mensual total
     chart = BarChart()
     chart.title = "Ganancia Mensual Total"
     chart.y_axis.title = "Monto ($)"
     chart.x_axis.title = "Mes"
 
-    # Celda de ganancia total para el gráfico
     data = Reference(ws, min_col=8, min_row=fila, max_row=fila)
     categories = Reference(ws, min_col=7, min_row=fila, max_row=fila)
     chart.add_data(data, titles_from_data=False)
     chart.set_categories(categories)
 
-    # Posición del gráfico
     ws.add_chart(chart, f"A{fila + 2}")
 
     wb.save(nombre_archivo)
@@ -174,7 +167,7 @@ def exportar_excel_con_grafico(clientes, nombre_archivo="clientes_ganancias.xlsx
 if __name__ == "__main__":
     clientes = cargar_clientes()
 
-    cliente_efectivo = next((c for c in clientes if c.get("pago", "").lower() == "efectivo"), None)
+    cliente_efectivo = next((c for c in clientes if c.get("tipo_pago", "").lower() == "efectivo"), None)
     if cliente_efectivo:
         exportar_factura_pdf(cliente_efectivo, nombre_pdf="factura_cliente_efectivo.pdf")
     else:
