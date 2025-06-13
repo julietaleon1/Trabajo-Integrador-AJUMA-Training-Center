@@ -9,7 +9,7 @@ from Profesores import abrir_modulo_profesores
 from exportar import abrir_ventana_exportar
 import subprocess
 import sys
-
+import os
 #inicio de sesion 
 CONTRASEÑA_CORRECTA = "ajumagym"
 
@@ -45,14 +45,58 @@ def animar_hover_boton(boton, color_base, color_hover):
 def mostrar_login():
     login_ventana = tk.Toplevel()
     login_ventana.title("Acceso al Sistema")
-    login_ventana.geometry("400x200")
+    login_ventana.geometry("400x250")  # Aumentamos el alto para el nuevo botón
     login_ventana.configure(bg="#111111")
     login_ventana.grab_set() 
     login_ventana.resizable(False, False)
+    
+    # Centrar la ventana
+    pantalla_ancho = login_ventana.winfo_screenwidth()
+    pantalla_alto = login_ventana.winfo_screenheight()
+    x = (pantalla_ancho // 2) - (400 // 2)
+    y = (pantalla_alto // 2) - (250 // 2)
+    login_ventana.geometry(f'400x250+{x}+{y}')
 
-    tk.Label(login_ventana, text="Ingrese la contraseña:", font=("Segoe UI", 14), bg="#111111", fg="white").pack(pady=20)
-    entry_contraseña = tk.Entry(login_ventana, show="*", font=("Segoe UI", 14), width=25)
-    entry_contraseña.pack()
+    # Frame principal
+    frame_login = tk.Frame(login_ventana, bg="#111111")
+    frame_login.pack(pady=20, padx=20, fill="both", expand=True)
+
+    tk.Label(frame_login, text="Ingrese la contraseña:", font=("Segoe UI", 14), bg="#111111", fg="white").pack(pady=10)
+    
+    # Frame para el campo de contraseña y botón de mostrar
+    frame_password = tk.Frame(frame_login, bg="#111111")
+    frame_password.pack()
+    
+    entry_contraseña = tk.Entry(frame_password, show="*", font=("Segoe UI", 14), width=20, bd=2, relief="flat")
+    entry_contraseña.pack(side="left", padx=5)
+    
+    # Botón para mostrar/ocultar contraseña
+    mostrar_icon = Image.open("eye_icon.png").resize((20, 20)) if os.path.exists("eye_icon.png") else None
+    if mostrar_icon:
+        mostrar_icon = ImageTk.PhotoImage(mostrar_icon)
+        btn_mostrar = tk.Button(frame_password, image=mostrar_icon, command=lambda: toggle_password(entry_contraseña, btn_mostrar), 
+                              bg="#111111", activebackground="#111111", bd=0)
+        btn_mostrar.image = mostrar_icon
+    else:
+        btn_mostrar = tk.Button(frame_password, text="👁️", command=lambda: toggle_password(entry_contraseña, btn_mostrar), 
+                              font=("Segoe UI", 10), bg="#111111", fg="white", bd=0)
+    btn_mostrar.pack(side="left")
+    
+    # Función para alternar entre mostrar/ocultar contraseña
+    def toggle_password(entry, button):
+     if entry['show'] == "*":
+        entry.config(show="")
+        if not mostrar_icon:
+            button.config(text="👁️")
+        else:
+            button.config(image=mostrar_icon)
+     else:
+        entry.config(show="*")
+        if not mostrar_icon:
+            button.config(text="👁️")
+        else:
+            button.config(image=mostrar_icon)
+
     
     #Verificacion de contraseña
     def verificar_contraseña():
@@ -61,12 +105,26 @@ def mostrar_login():
             iniciar_menu()
         else:
             messagebox.showerror("Error", "Contraseña incorrecta.")
+            entry_contraseña.delete(0, tk.END)
+            entry_contraseña.focus()
 
-    tk.Button(login_ventana, text="Ingresar", command=verificar_contraseña,
-              font=("Segoe UI", 12), bg="#333333", fg="white").pack(pady=20)
+    # Frame para botones
+    frame_botones = tk.Frame(frame_login, bg="#111111")
+    frame_botones.pack(pady=15)
+    
+    btn_ingresar = tk.Button(frame_botones, text="Ingresar", command=verificar_contraseña,
+                            font=("Segoe UI", 12), bg="#333333", fg="white", width=10)
+    btn_ingresar.pack(side="left", padx=10)
+    
+    btn_cancelar = tk.Button(frame_botones, text="Cancelar", command=salir,
+                            font=("Segoe UI", 12), bg="#555555", fg="white", width=10)
+    btn_cancelar.pack(side="left", padx=10)
 
     # Permitir Enter para ingresar
     login_ventana.bind("<Return>", lambda e: verificar_contraseña())
+    
+    # Enfocar el campo de contraseña al abrir
+    entry_contraseña.focus()
 
 def iniciar_menu():
     root.deiconify()
@@ -78,14 +136,17 @@ root.attributes('-fullscreen', True)
 root.withdraw() 
 
 # Fondo
-imagen_fondo = Image.open("C:/Users/Usuario/Desktop/Gestion GImnasio Ajuma Traingin center/Imagen Gimnasio IA.jpg")
-ancho_pantalla = root.winfo_screenwidth()
-alto_pantalla = root.winfo_screenheight()
-imagen_fondo = imagen_fondo.resize((ancho_pantalla, alto_pantalla))
-fondo_tk = ImageTk.PhotoImage(imagen_fondo)
-
-label_fondo = tk.Label(root, image=fondo_tk)
-label_fondo.place(x=0, y=0, relwidth=1, relheight=1)
+try:
+    imagen_fondo = Image.open("C:/Users/Usuario/Desktop/Gestion GImnasio Ajuma Traingin center/Imagen Gimnasio IA.jpg")
+    ancho_pantalla = root.winfo_screenwidth()
+    alto_pantalla = root.winfo_screenheight()
+    imagen_fondo = imagen_fondo.resize((ancho_pantalla, alto_pantalla))
+    fondo_tk = ImageTk.PhotoImage(imagen_fondo)
+    label_fondo = tk.Label(root, image=fondo_tk)
+    label_fondo.place(x=0, y=0, relwidth=1, relheight=1)
+except:
+    # Fondo alternativo si no se carga la imagen
+    root.configure(bg='#000000')
 
 contenedor = tk.Frame(root, bg='#000000')
 contenedor.place(relx=0.5, rely=0.5, anchor='center')
